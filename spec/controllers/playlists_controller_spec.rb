@@ -45,6 +45,15 @@ RSpec.describe PlaylistsController, type: :controller do
       expect(response.body).to eql('{"title":"Josef Salvat - Open Season [Bootleg Mix] by Chiddeh"}')
     end
 
+    it "should guess a name for an Apple Music playlist URL" do
+      FakeWeb.register_uri :get,
+                           'https://itunes.apple.com/us/playlist/one-giant-leap-for-mankind/idpl.529c2fdd218b48a7b397f7de3741d5aa',
+                           body: Rails.root.join('spec', 'fixtures', 'itunes_playlist.html').read
+      get :name, url: 'https://itunes.apple.com/us/playlist/one-giant-leap-for-mankind/idpl.529c2fdd218b48a7b397f7de3741d5aa', user_id: @user.to_param
+      expect(response.status).to eql(200)
+      expect(response.body).to eql('{"title":"One Giant Leap For Mankind by Apple Music Electronic"}')
+    end
+
     it "should suggest nil for another URL" do
       FakeWeb.register_uri :get,
                            'http://example.com',

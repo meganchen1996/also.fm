@@ -12,13 +12,17 @@ class PlaylistsController < ApplicationController
     html = load_url(uri)
     return render(json: {title: nil}) unless html
 
-    title = load_url_title(html)
-    return render(json: {title: nil}) unless title
-    title = title.strip.gsub(/\s*\n\s*/, ' ')
+    unless (title = load_twitter_title(html))
+      title = load_url_title(html)
+      return render(json: {title: nil}) unless title
+      title = title.strip.gsub(/\s*\n\s*/, ' ')
+    end
 
     name = if title =~ /^iTunes - Music - (.+)$/
              $1
            elsif title =~ /^(.+) on iTunes$/
+             $1
+           elsif title =~ /^(.+) on Apple Music$/
              $1
            elsif title =~ /^(.+) \| Free Listening on SoundCloud$/
              $1
@@ -41,7 +45,7 @@ class PlaylistsController < ApplicationController
   def load_url(uri)
     return nil unless %(http https).include?(uri.scheme)
 
-    conn = Faraday.new(url: uri.origin) do |f|
+    conn = Faraday.new(url: uri.origin, ssl: {verify: false}) do |f|
       f.use FaradayMiddleware::FollowRedirects
       f.adapter Faraday.default_adapter
     end
@@ -70,5 +74,9 @@ class PlaylistsController < ApplicationController
     return nil unless span
 
     return span.text
+  end
+
+  def load_twitter_title(html)
+    html.css('meta[name="twitter:title"]').first.try!(:[], 'content')
   end
 end
